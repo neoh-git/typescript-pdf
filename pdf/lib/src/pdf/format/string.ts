@@ -122,7 +122,7 @@ export class PdfString extends PdfDataType {
      * @param format The format of the string.
      * @param encrypted Whether the string should be encrypted.
      */
-    private constructor(
+    constructor(
         value: Uint8Array,
         params: {
             format?: PdfStringFormat;
