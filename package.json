@@ -1,0 +1,33 @@
+{
+    "name": "typescript-pdf",
+    "version": "0.0.1",
+    "description": "A demo package for Total TypeScript",
+    "keywords": [
+        "pdf",
+        "typescript"
+    ],
+    "homepage": "https://github.com/neoh-ai/typescript-pdf",
+    "bugs": {
+        "url": "https://github.com/neoh-ai/typescript-pdf/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/neoh-ai/typescript-pdf.git"
+    },
+    "license": "MIT",
+    "author": "Nick Westendorf <nick@neoh.ai>",
+    "type": "module",
+    "main": "dist/index.ts",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist"
+    ],
+    "scripts": {
+        "build": "tsc",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "devDependencies": {
+        "@types/node": "^24.0.1",
+        "typescript": "^5.8.3"
+    }
+}
