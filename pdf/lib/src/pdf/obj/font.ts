@@ -349,11 +349,11 @@ See https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
         }
 
         try {
-            // Assuming `latin1.encode` correctly returns Uint8Array (equivalent of Dart's Uint8List)
-            const chars = latin1.encode(s);
-            // Ensure `this` context is preserved for `glyphMetrics` if it relies on `this`.
-            // Using an arrow function in `map` automatically binds `this`.
-            const metrics = chars.map((charCode) => this.glyphMetrics(charCode));
+            const chars = encodeLatin1(s);
+            const metrics: PdfFontMetrics[] = [];
+            for (const c of chars) {
+                metrics.push(this.glyphMetrics(c));
+            }
             return PdfFontMetrics.append(metrics, { letterSpacing: letterSpacing });
         } catch (e) {
             // Dart's `assert(() { print(...); return true; }());` is a debug-only mechanism.
@@ -386,7 +386,7 @@ See https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
     putText(stream: PdfStream, text: string): void {
         try {
             // Assuming PdfString constructor takes an object for named parameters
-            new PdfString(latin1.encode(text), {
+            new PdfString(encodeLatin1(text), {
                 format: PdfStringFormat.literal,
                 encrypted: false,
             }).output(this, stream);
@@ -395,4 +395,21 @@ See https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
             throw e;
         }
     }
+}
+
+export function encodeLatin1(str: string): Uint8Array {
+    const bytes = new Uint8Array(str.length);
+    for (let i = 0; i < str.length; i++) {
+        const charCode = str.charCodeAt(i);
+
+        // Latin-1 characters must be in the range 0-255.
+        // Throw an error for characters that cannot be represented.
+        if (charCode > 255) {
+            throw new Error(
+                `Character "${str[i]}" at index ${i} is not a valid Latin-1 character.`
+            );
+        }
+        bytes[i] = charCode;
+    }
+    return bytes;
 }
