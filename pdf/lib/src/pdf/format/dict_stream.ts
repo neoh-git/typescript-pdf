@@ -10,14 +10,7 @@ import { PdfStream } from './stream';
 // This is a necessary "implied placeholder" as per the request to avoid explicit placeholders for *this* file's classes.
 interface PdfSettings {
     deflate?: (data: Uint8Array) => Uint8Array;
-    encryptCallback?: (data: Uint8Array, obj: PdfObjectBase) => Uint8Array;
-}
-// Extend PdfObjectBase to include settings. This is a simplification;
-// you might have a more complex hierarchy or composition.
-declare module './object_base' {
-    interface PdfObjectBase {
-        settings: PdfSettings;
-    }
+    encryptCallback?: (data: Uint8Array, obj: PdfObjectBase<PdfDataType>) => Uint8Array;
 }
 
 
@@ -89,7 +82,7 @@ export class PdfDictStream extends PdfDict<PdfDataType> {
      * @param s The PdfStream to write to.
      * @param indent Optional indentation level for pretty-printing.
      */
-    public output(o: PdfObjectBase, s: PdfStream, indent?: number): void {
+    public output(o: PdfObjectBase<PdfDataType>, s: PdfStream, indent?: number): void {
         // Create a mutable copy of the dictionary values to add stream-specific entries.
         // Assuming `this.values` in PdfDict is a plain object { [key: string]: PdfDataType }.
         const _values = new PdfDict({ ...this.values }); // Create a new PdfDict instance

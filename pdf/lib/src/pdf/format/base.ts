@@ -33,7 +33,7 @@ export abstract class PdfDataType {
      * @param s The PdfStream to write to.
      * @param indent Optional indentation level for pretty-printing.
      */
-    public abstract output(o: PdfObjectBase, s: PdfStream, indent?: number): void;
+    public abstract output(o: PdfObjectBase<PdfDataType>, s: PdfStream, indent?: number): void;
 
     /**
      * Converts the PDF data type to a PdfStream. This is a private helper.

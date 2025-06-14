@@ -1,6 +1,7 @@
 // Assuming these types are defined and exported from their respective files:
 // import { Uint8Array } from 'typed_data'; // Uint8Array is a global type in TS environments
 import { PdfDataType } from './base';
+import { PdfDiagnostic } from './diagnostic';
 import { PdfIndirect } from './indirect';
 import { PdfStream } from './stream';
 
@@ -18,7 +19,7 @@ export type DeflateCallback = (data: Uint8Array) => Uint8Array;
  */
 export type PdfEncryptCallback = (
     input: Uint8Array,
-    object: PdfObjectBase<any> // Using any for generic type `T` of PdfObjectBase
+    object: PdfObjectBase<PdfDataType>
 ) => Uint8Array;
 
 // --- Enum for PDF Version ---
@@ -90,23 +91,6 @@ export class PdfSettings {
 }
 
 
-// --- PdfDiagnostic "Mixin" (Interface + Implementation) ---
-
-// In Dart, `with PdfDiagnostic` implies that PdfObjectBase gets the members of PdfDiagnostic.
-// In TypeScript, we can define an interface for PdfDiagnostic and then have PdfObjectBase
-// implement those members directly, or use a mixin pattern if PdfDiagnostic has complex logic.
-// For simplicity, let's assume PdfDiagnostic functions are provided by a utility
-// or directly implemented here. Given the import, it's likely a utility.
-
-// Placeholder/declarations for PdfDiagnostic functions
-// (These would typically come from an imported 'diagnostic' module)
-declare function setInsertion(stream: PdfStream, value: number): void;
-declare function startStopwatch(): void;
-declare function stopStopwatch(): void;
-declare function debugFill(message: string): void;
-declare function writeDebug(stream: PdfStream): void;
-declare let elapsedStopwatch: number; // Represents Duration.inMicroseconds
-
 
 // --- PdfObjectBase Class ---
 
@@ -114,7 +98,7 @@ declare let elapsedStopwatch: number; // Represents Duration.inMicroseconds
  * Base class for all PDF objects that can be written to a PDF file.
  * Each object has a unique serial number and a generation number.
  */
-export class PdfObjectBase<T extends PdfDataType> {
+export class PdfObjectBase<T extends PdfDataType> extends PdfDiagnostic {
     /**
      * The unique serial number for this object.
      */

@@ -37,7 +37,7 @@ export class PdfArray<T extends PdfDataType> extends PdfDataType {
      * @param objects An iterable of PdfObjectBase instances.
      * @returns A new PdfArray of PdfIndirect references.
      */
-    static fromObjects(objects: Iterable<PdfObjectBase>): PdfArray<PdfIndirect> {
+    static fromObjects(objects: Iterable<PdfObjectBase<PdfDataType>>): PdfArray<PdfIndirect> {
         // Map PdfObjectBase instances to their indirect references
         return new PdfArray(Array.from(objects).map(e => e.ref()));
     }
@@ -89,7 +89,7 @@ export class PdfArray<T extends PdfDataType> extends PdfDataType {
      * @param s The PdfStream to write to.
      * @param indent Optional indentation level for pretty-printing.
      */
-    public output(o: PdfObjectBase, s: PdfStream, indent?: number): void {
+    public output(o: PdfObjectBase<PdfDataType>, s: PdfStream, indent?: number): void {
         let currentIndent = indent;
 
         if (currentIndent != null) {

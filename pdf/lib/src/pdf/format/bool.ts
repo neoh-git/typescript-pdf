@@ -27,7 +27,7 @@ export class PdfBool extends PdfDataType {
      * @param s The PdfStream to write to.
      * @param indent Optional indentation level (not typically used for booleans, but part of the interface).
      */
-    public output(o: PdfObjectBase, s: PdfStream, indent?: number): void {
+    public output(o: PdfObjectBase<PdfDataType>, s: PdfStream, indent?: number): void {
         s.putString(this.value ? 'true' : 'false');
     }
 

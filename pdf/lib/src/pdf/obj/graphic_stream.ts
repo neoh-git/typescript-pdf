@@ -163,7 +163,7 @@ export function PdfGraphicStreamMixin<TBase extends Constructor<PdfObject<PdfDic
             }
 
             // Transparency Group settings
-            if (this.pdfDocument.hasGraphicStates && !this.params.has('/Group')) { // Dart's `containsKey` is `has`
+            if (this.pdfDocument.hasGraphicStates && !this.params.contains('/Group')) { // Dart's `containsKey` is `contains`
                 // Dart's `PdfDict.values({...})` is `new PdfDict({...})`
                 this.params.set('/Group', new PdfDict({
                     '/Type': new PdfName('/Group'),
