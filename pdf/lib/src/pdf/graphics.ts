@@ -1,11 +1,11 @@
 // Assuming these are defined in other TypeScript files:
 import { PathProxy, writeSvgPathDataToPath } from 'path-parsing'; // Assuming from the path-parsing library
-import { Matrix4, Vector3 } from 'vector_math'; // Assuming from vector_math library
+import { mat4, vec3 } from 'gl-matrix';
 
 import { PdfColor, PdfColorCmyk } from './color';
-import { PdfArray, PdfNumList } from './format/array';
+import { PdfArray } from './format/array';
 import { PdfName } from './format/name';
-import { PdfNum } from './format/num';
+import { PdfNum, PdfNumList } from './format/num';
 import { PdfStream } from './format/stream';
 import { PdfGraphicState } from './graphic_state';
 import { PdfFont } from './obj/font';
@@ -78,15 +78,15 @@ export enum PdfTextRenderingMode {
  * @immutable This is a Dart-specific annotation; in TypeScript, ensure objects are not modified after creation.
  */
 class _PdfGraphicsContext {
-    readonly ctm: Matrix4;
+    readonly ctm: mat4;
 
-    constructor({ ctm }: { ctm: Matrix4 }) {
+    constructor({ ctm }: { ctm: mat4 }) {
         this.ctm = ctm;
     }
 
     copy(): _PdfGraphicsContext {
         return new _PdfGraphicsContext({
-            ctm: this.ctm.clone(),
+            ctm: mat4.copy(mat4.create(), this.ctm),
         });
     }
 }
@@ -539,11 +539,10 @@ export class PdfGraphics {
 
     /**
      * Set the transformation Matrix.
-     * @param t The Matrix4 to set as the current transformation matrix.
+     * @param t The mat4 to set as the current transformation matrix.
      */
-    public setTransform(t: Matrix4): void {
-        const s = t.storage; // Assuming Matrix4.storage gives a flat array of 16 numbers
-        new PdfNumList([s[0], s[1], s[4], s[5], s[12], s[13]]).output(this._page, this._buf);
+    public setTransform(t: mat4): void {
+        new PdfNumList([t[0], t[1], t[4], t[5], t[12], t[13]]).output(this._page, this._buf);
         this._buf.putString(' cm '); // Concatenate matrix
         this._context.ctm.multiply(t); // Update internal CTM
     }
@@ -552,7 +551,7 @@ export class PdfGraphics {
      * Get the current transformation Matrix.
      * @returns A clone of the current transformation matrix.
      */
-    public getTransform(): Matrix4 {
+    public getTransform(): mat4 {
         return this._context.ctm.clone();
     }
 
@@ -782,12 +781,15 @@ export class PdfGraphics {
         if (phi !== 0.0) {
             // Our box bézier arcs can't handle rotations directly
             // move to a well known point, eliminate phi and transform the other point
-            const mat = Matrix4.identity();
-            mat.translate(-x1, -y1, 0); // Assuming translate takes z, or a 2D equivalent
-            mat.rotateZ(-phi);
-            // Assuming Matrix4.transform3 takes a Vector3 and returns one.
-            const tr = mat.transform3(new Vector3(x2, y2, 0));
-            this._endToCenterParameters(0, 0, tr.x, tr.y, large, sweep, rx, ry);
+            const mat = mat4.create();
+            mat4.translate(mat, mat, vec3.fromValues(-x1, -y1, 0));
+            mat4.rotateZ(mat, mat, -phi);
+
+            // Use vec3.transformMat4 to transform the vector
+            const v = vec3.fromValues(x2, y2, 0);
+            const tr = vec3.create();
+            vec3.transformMat4(tr, v, mat);
+            this._endToCenterParameters(0, 0, tr[0], tr[1], large, sweep, rx, ry);
         } else {
             this._endToCenterParameters(x1, y1, x2, y2, large, sweep, rx, ry);
         }

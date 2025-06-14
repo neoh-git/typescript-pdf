@@ -30,7 +30,7 @@ type Constructor<T = {}> = new (...args: any[]) => T;
  * Mixin for graphic objects that manage resources like fonts, shaders, patterns, and XObjects.
  * It must be applied to a class that extends PdfObject<PdfDict>.
  */
-export function PdfGraphicStreamMixin<TBase extends Constructor<PdfObject<PdfDict>>>(Base: TBase) {
+export function PdfGraphicStreamMixin<TBase extends Constructor<PdfObject<PdfDict<any>>>>(Base: TBase) {
     // Dart's mixin properties and methods are defined here
     return class PdfGraphicStream extends Base {
         // Dart's `bool isolatedTransparency = false;`
