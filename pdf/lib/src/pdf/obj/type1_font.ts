@@ -18,6 +18,7 @@ import { PdfNum } from '../format/num';
 import { PdfFont } from './font';
 import { PdfObject } from './object';
 import { PdfVersion } from '../../priv'; // Or wherever PdfVersion is defined
+import { PdfDataType } from '../format/base';
 
 /**
  * Type 1 font object.
@@ -30,12 +31,11 @@ import { PdfVersion } from '../../priv'; // Or wherever PdfVersion is defined
  * See https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management
  */
 export class PdfType1Font extends PdfFont {
-    // Dart's `final` fields are `public readonly` in TypeScript.
     public readonly fontName: string;
     public readonly ascent: number;
     public readonly descent: number;
-    public readonly widths: number[]; // Dart's `List<double>` is `number[]`
     public readonly missingWidth: number;
+    public readonly widths: number[];
 
     /**
      * Constructs a [PdfType1Font].
@@ -58,7 +58,7 @@ export class PdfType1Font extends PdfFont {
             fontName: string;
             ascent: number;
             descent: number;
-            fontBBox: number[]; // Dart's `List<int>`
+            fontBBox: number[];
             italicAngle?: number;
             capHeight: number;
             stdHW: number;
@@ -133,7 +133,7 @@ export class PdfType1Font extends PdfFont {
             this.params.set('/Widths', PdfArray.fromNumbers(fontWidthsArray));
 
             // Create FontDescriptor object.
-            const fontDescriptor = new PdfObject<PdfDict>(
+            const fontDescriptor = new PdfObject<PdfDict<PdfDataType>>(
                 pdfDocument,
                 {
                     // Dart's `PdfDict.values({...})`

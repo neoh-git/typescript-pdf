@@ -6,6 +6,7 @@ import {
     helveticaObliqueWidths, timesWidths, timesBoldWidths, timesBoldItalicWidths,
     timesItalicWidths, symbolWidths, zapfDingbatsWidths
 } from '../font/type1_fonts';
+import { PdfDataType } from '../format/base';
 import { PdfDict } from '../format/dict';
 import { PdfName } from '../format/name';
 import { PdfStream } from '../format/stream';
@@ -13,18 +14,10 @@ import { PdfString, PdfStringFormat } from '../format/string';
 import { PdfPoint } from '../point';
 import { PdfObject } from './object';
 import { PdfType1Font } from './type1_font';
-
-// Assume latin1 is imported or globally available, e.g., from a utility module
-// import { latin1 } from '../utils/encoding';
-interface Latin1Encoder {
-    encode(input: string): Uint8Array;
-}
-declare const latin1: Latin1Encoder; // Declare it to satisfy type checker, assuming it's available.
-
 /**
  * Pdf font object
  */
-export abstract class PdfFont extends PdfObject<PdfDict> {
+export abstract class PdfFont extends PdfObject<PdfDict<PdfDataType>> {
     // In Dart, `PdfFont.create` is a named constructor. In TypeScript,
     // we translate it to the primary constructor. It's `protected` because
     // `PdfFont` is abstract and intended to be subclassed, not directly instantiated.
@@ -128,7 +121,7 @@ export abstract class PdfFont extends PdfObject<PdfDict> {
                 fontName: 'Helvetica',
                 ascent: 0.931,
                 descent: -0.225,
-                widths: helveticaWidths,
+                widths: helveticaWidths.slice(),
                 fontBBox: [-166, -225, 1000, 931],
                 capHeight: 718,
                 stdHW: 76,
@@ -145,7 +138,7 @@ export abstract class PdfFont extends PdfObject<PdfDict> {
                 fontName: 'Helvetica-Bold',
                 ascent: 0.962,
                 descent: -0.228,
-                widths: helveticaBoldWidths,
+                widths: helveticaBoldWidths.slice(),
                 fontBBox: [-170, -228, 1003, 962],
                 capHeight: 718,
                 stdHW: 118,
@@ -162,7 +155,7 @@ export abstract class PdfFont extends PdfObject<PdfDict> {
                 fontName: 'Helvetica-BoldOblique',
                 ascent: 0.962,
                 descent: -0.228,
-                widths: helveticaBoldObliqueWidths,
+                widths: helveticaBoldObliqueWidths.slice(),
                 italicAngle: -12,
                 fontBBox: [-170, -228, 1114, 962],
                 capHeight: 718,
@@ -180,7 +173,7 @@ export abstract class PdfFont extends PdfObject<PdfDict> {
                 fontName: 'Helvetica-Oblique',
                 ascent: 0.931,
                 descent: -0.225,
-                widths: helveticaObliqueWidths,
+                widths: helveticaObliqueWidths.slice(),
                 italicAngle: -12,
                 fontBBox: [-170, -225, 1116, 931],
                 capHeight: 718,
@@ -198,7 +191,7 @@ export abstract class PdfFont extends PdfObject<PdfDict> {
                 fontName: 'Times-Roman',
                 ascent: 0.898,
                 descent: -0.218,
-                widths: timesWidths,
+                widths: timesWidths.slice(),
                 fontBBox: [-168, -218, 1000, 898],
                 capHeight: 662,
                 stdHW: 28,
@@ -215,7 +208,7 @@ export abstract class PdfFont extends PdfObject<PdfDict> {
                 fontName: 'Times-Bold',
                 ascent: 0.935,
                 descent: -0.218,
-                widths: timesBoldWidths,
+                widths: timesBoldWidths.slice(),
                 fontBBox: [-168, -218, 1000, 935],
                 capHeight: 676,
                 stdHW: 44,
@@ -232,7 +225,7 @@ export abstract class PdfFont extends PdfObject<PdfDict> {
                 fontName: 'Times-BoldItalic',
                 ascent: 0.921,
                 descent: -0.218,
-                widths: timesBoldItalicWidths,
+                widths: timesBoldItalicWidths.slice(),
                 italicAngle: -15,
                 fontBBox: [-200, -218, 996, 921],
                 capHeight: 669,
@@ -250,7 +243,7 @@ export abstract class PdfFont extends PdfObject<PdfDict> {
                 fontName: 'Times-Italic',
                 ascent: 0.883,
                 descent: -0.217,
-                widths: timesItalicWidths,
+                widths: timesItalicWidths.slice(),
                 italicAngle: -15.5,
                 fontBBox: [-169, -217, 1010, 883],
                 capHeight: 653,
@@ -269,7 +262,7 @@ export abstract class PdfFont extends PdfObject<PdfDict> {
                 fontName: 'Symbol',
                 ascent: 1.010,
                 descent: -0.293,
-                widths: symbolWidths,
+                widths: symbolWidths.slice(),
                 fontBBox: [-180, -293, 1090, 1010],
                 capHeight: 653,
                 stdHW: 92,
@@ -286,7 +279,7 @@ export abstract class PdfFont extends PdfObject<PdfDict> {
                 fontName: 'ZapfDingbats',
                 ascent: 0.820,
                 descent: -0.143,
-                widths: zapfDingbatsWidths,
+                widths: zapfDingbatsWidths.slice(),
                 fontBBox: [-1, -143, 981, 820],
                 capHeight: 653,
                 stdHW: 28,

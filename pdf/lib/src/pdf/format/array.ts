@@ -47,7 +47,7 @@ export class PdfArray<T extends PdfDataType> extends PdfDataType {
      * @param list An iterable of numbers.
      * @returns A new PdfArray of PdfNum instances.
      */
-    static fromNum(list: Iterable<number>): PdfArray<PdfNum> {
+    static fromNumbers(list: Iterable<number>): PdfArray<PdfNum> {
         // Map numbers to PdfNum instances
         return new PdfArray(Array.from(list).map(e => new PdfNum(e)));
     }
@@ -60,14 +60,14 @@ export class PdfArray<T extends PdfDataType> extends PdfDataType {
      */
     static fromColor(color: PdfColor | PdfColorCmyk): PdfArray<PdfNum> {
         if (color instanceof PdfColorCmyk) {
-            return PdfArray.fromNum([
+            return PdfArray.fromNumbers([
                 color.cyan,
                 color.magenta,
                 color.yellow,
                 color.black,
             ]);
         } else {
-            return PdfArray.fromNum([
+            return PdfArray.fromNumbers([
                 color.red,
                 color.green,
                 color.blue,

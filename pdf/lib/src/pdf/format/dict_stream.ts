@@ -62,7 +62,7 @@ export class PdfDictStream extends PdfDict<PdfDataType> {
      * @param params.encrypt If true, the stream data will be encrypted.
      * @param params.compress If true, the stream data will be compressed (e.g., FlateDecode).
      */
-    static values(params: {
+    static fromValues(params: {
         values: Map<string, PdfDataType>;
         data: Uint8Array;
         isBinary?: boolean;
@@ -90,7 +90,7 @@ export class PdfDictStream extends PdfDict<PdfDataType> {
         let _data: Uint8Array | null = null;
 
         // Check if a filter is already explicitly set (meaning data is already processed)
-        if (_values.values['/Filter'] !== undefined) {
+        if (_values.values.has('/Filter')) {
             _data = this.data;
         } else if (this.compress && o.settings.deflate != null) {
             // Attempt to compress data using the deflate callback from settings.

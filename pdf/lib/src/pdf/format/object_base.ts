@@ -132,6 +132,7 @@ export class PdfObjectBase<T extends PdfDataType> extends PdfDiagnostic {
         settings: PdfSettings;
         objgen?: number;
     }) {
+        super(); // Call the base class constructor for diagnostics
         this.objser = params.objser;
         this.objgen = params.objgen ?? 0;
         this.params = params.params;
@@ -158,8 +159,8 @@ export class PdfObjectBase<T extends PdfDataType> extends PdfDiagnostic {
         // or a build-time flag. For direct translation, we use `if (this.settings.verbose)`.
         if (this.settings.verbose) {
             // Assume these diagnostic functions are available globally or imported.
-            setInsertion(s, 160); // What `160` refers to might need context.
-            startStopwatch();
+            this.setInsertion(s, 160); // What `160` refers to might need context.
+            this.startStopwatch();
         }
 
         const offset = s.offset; // Get current stream offset
@@ -168,10 +169,10 @@ export class PdfObjectBase<T extends PdfDataType> extends PdfDiagnostic {
         s.putString('endobj\n'); // Write object trailer
 
         if (this.settings.verbose) {
-            stopStopwatch();
+            this.stopStopwatch();
             // Dart's `Duration.microsecondsPerSecond` is 1,000,000
-            debugFill(`Creation time: ${elapsedStopwatch / 1000000} seconds`);
-            writeDebug(s);
+            this.debugFill(`Creation time: ${this.elapsedStopwatch / 1000000} seconds`);
+            this.writeDebug(s);
         }
         return offset;
     }

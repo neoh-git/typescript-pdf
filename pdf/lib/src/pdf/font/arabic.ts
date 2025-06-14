@@ -23,7 +23,7 @@ const _arabicSubstitutionA: Record<number, number[] | number> = {
     0x062B: [1579, 0xFE9A, 0xFE9B, 0xFE9C], // ARABIC LETTER THEH
     0x062C: [1580, 0xFE9E, 0xFE9F, 0xFEA0], // ARABIC LETTER JEEM
     0x062D: [1581, 0xFEA2, 0xFEA3, 0xFEA4], // ARABIC LETTER HAH
-    0x062E: [1582, 0xFEA6, 0xFEA7, 0FEA8], // ARABIC LETTER KHAH
+    0x062E: [1582, 0xFEA6, 0xFEA7, 0xFEA8], // ARABIC LETTER KHAH
     0x062F: [1583, 0xFEAA], // ARABIC LETTER DAL
     0x0630: [1584, 0xFEAC], // ARABIC LETTER THAL
     0x0631: [1585, 0xFEAE], // ARABIC LETTER REH
@@ -104,7 +104,7 @@ const _diacriticLigatures: Record<number, Record<number, number> | number> = {
     },
 };
 
-const _ligatures: Record<number, Record<number, number> | Record<number, Record<number, number>> | number> = {
+const _ligatures: Record<number, any> = {
     0xFEDF: { // LAM ISOLATED FORM
         0xFE82: 0xFEF5, // ARABIC LIGATURE LAM WITH ALEF WITH MADDA ABOVE ISOLATED FORM
         0xFE84: 0xFEF7, // ARABIC LIGATURE LAM WITH ALEF WITH HAMZA ABOVE ISOLATED FORM

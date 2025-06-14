@@ -25,18 +25,16 @@ export class PdfDict<T extends PdfDataType> extends PdfDataType {
      * The internal object storing the dictionary's key-value pairs.
      * Keys are strings, and values are of type T (which extends PdfDataType).
      */
-    public readonly values: { [key: string]: T };
+    public readonly values: Map<string, T>;
 
     /**
      * Creates a PdfDict instance.
      * @param initialValues An optional object containing initial key-value pairs.
      *                      If not provided, an empty dictionary is created.
      */
-    constructor(initialValues?: { [key: string]: T }) {
+    constructor(initialValues?: Map<string, T> | { [key: string]: T }) {
         super();
-        // Use a shallow copy to ensure `this.values` is a distinct object,
-        // preventing external modification if `initialValues` was a direct reference.
-        this.values = { ...(initialValues || {}) };
+        this.values = new Map<string, T>(initialValues instanceof Map ? initialValues : Object.entries(initialValues || {}));
     }
 
     /**
@@ -44,7 +42,7 @@ export class PdfDict<T extends PdfDataType> extends PdfDataType {
      * This is a static factory method mirroring Dart's named constructor `PdfDict.values`.
      * @param initialValues An optional object containing initial key-value pairs.
      */
-    static values<T extends PdfDataType>(initialValues?: { [key: string]: T }): PdfDict<T> {
+    static values<T extends PdfDataType>(initialValues?: Map<string, T> | { [key: string]: T }): PdfDict<T> {
         return new PdfDict(initialValues);
     }
 
@@ -54,9 +52,7 @@ export class PdfDict<T extends PdfDataType> extends PdfDataType {
      * @param objects A plain object mapping string keys to PdfObjectBase instances.
      * @returns A new PdfDict where the values are PdfIndirect references.
      */
-    static fromObjectMap(
-        objects: { [key: string]: PdfObjectBase }
-    ): PdfDict<PdfIndirect> {
+    static fromObjectMap(objects: { [key: string]: PdfObjectBase<PdfDataType> }): PdfDict<PdfIndirect> {
         const mappedValues: { [key: string]: PdfIndirect } = {};
         for (const key in objects) {
             // Ensure the property belongs to the object itself, not its prototype chain
@@ -90,8 +86,7 @@ export class PdfDict<T extends PdfDataType> extends PdfDataType {
      * @param value The value to associate with the key.
      */
     public set(key: string, value: T): void {
-        // Type assertion needed because `values` is readonly, but its *contents* are mutable.
-        (this.values as { [key: string]: T })[key] = value;
+        this.values.set(key, value);
     }
 
     /**
@@ -101,7 +96,7 @@ export class PdfDict<T extends PdfDataType> extends PdfDataType {
      * @returns The value associated with the key, or `undefined` if the key is not found.
      */
     public get(key: string): T | undefined {
-        return this.values[key];
+        return this.values.get(key);
     }
 
     /**
@@ -111,7 +106,7 @@ export class PdfDict<T extends PdfDataType> extends PdfDataType {
      * @param s The PdfStream to write to.
      * @param indent Optional indentation level for pretty-printing the output.
      */
-    public output(o: PdfObjectBase, s: PdfStream, indent?: number): void {
+    public output(o: PdfObjectBase<PdfDataType>, s: PdfStream, indent?: number): void {
         let currentIndent = indent; // Use a local variable for mutable indentation
 
         if (currentIndent != null) {
@@ -193,11 +188,11 @@ export class PdfDict<T extends PdfDataType> extends PdfDataType {
      * @param other The PdfDict instance to merge from.
      */
     public merge(other: PdfDict<T>): void {
-        for (const key of Object.keys(other.values)) {
-            const incomingValue = other.values[key];
+        for (const key of other.values.keys()) {
+            const incomingValue = other.values.get(key);
             if (incomingValue === undefined) continue; // Should not happen with Object.keys iteration
 
-            const currentValue = this.values[key];
+            const currentValue = this.values.get(key);
 
             if (currentValue === undefined) {
                 // Key does not exist in the current dictionary, just add it.
@@ -224,7 +219,9 @@ export class PdfDict<T extends PdfDataType> extends PdfDataType {
     public addAll(other: PdfDict<T>): void {
         // Object.assign performs a shallow copy of enumerable properties from source to target.
         // This effectively adds/overwrites properties in `this.values`.
-        Object.assign((this.values as { [key: string]: T }), other.values);
+        for (const [key, value] of other.values.entries()) {
+            this.values.set(key, value);
+        }
     }
 
     /**
@@ -255,8 +252,8 @@ export class PdfDict<T extends PdfDataType> extends PdfDataType {
                 return false; // Key missing in other dict
             }
 
-            const val1 = this.values[key];
-            const val2 = other.values[key];
+            const val1 = this.values.get(key);
+            const val2 = other.values.get(key);
 
             // If the value has an 'equals' method (expected for PdfDataType subclasses), use it.
             // Otherwise, fall back to strict equality (for primitives or objects without custom equality).

@@ -1,9 +1,4 @@
-// Assuming these are defined in their respective .ts files:
-// For example, for Matrix4, you might have:
-// declare interface Matrix4 {
-//   storage: number[]; // Represents the underlying 16-element Float64Array or similar
-// }
-// import { Matrix4 } from 'your-vector-math-library';
+
 
 // And for other imports:
 // import { PdfDocument } from '../document';
@@ -15,11 +10,8 @@
 
 // Placeholder for Matrix4 type, assuming it has a `storage` property which is an array of numbers.
 // In Dart's `vector_math_64`, `Matrix4.storage` is a `Float64List`.
-interface Matrix4 {
-    /** The 16 elements of the 4x4 matrix, typically in column-major order. */
-    storage: number[];
-}
 
+import { mat4 } from 'gl-matrix';
 import { PdfDocument } from '../document';
 import { PdfArray } from '../format/array';
 import { PdfDict } from '../format/dict';
@@ -68,8 +60,7 @@ export class PdfFormXObject extends PdfXObject {
      * Transformation matrix
      * @param t The 4x4 transformation matrix.
      */
-    setMatrix(t: Matrix4): void {
-        const s = t.storage; // Access the underlying array of the matrix.
+    setMatrix(t: mat4): void {
 
         // The PDF /Matrix array represents an affine transformation in the form [a b c d e f].
         // Given a column-major 4x4 matrix `s` (like from `vector_math_64`),
@@ -82,7 +73,7 @@ export class PdfFormXObject extends PdfXObject {
         // f = s[13] (m24, translation Y)
         this.params.set(
             '/Matrix',
-            PdfArray.fromNumbers([s[0], s[1], s[4], s[5], s[12], s[13]])
+            PdfArray.fromNumbers([t[0], t[1], t[4], t[5], t[12], t[13]])
         );
     }
 

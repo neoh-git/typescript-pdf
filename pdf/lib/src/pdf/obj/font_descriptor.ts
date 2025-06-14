@@ -9,6 +9,7 @@
 // import { PdfTtfFont } from './ttffont';
 
 import { PdfArray } from '../format/array';
+import { PdfDataType } from '../format/base';
 import { PdfDict } from '../format/dict';
 import { PdfName } from '../format/name';
 import { PdfNum } from '../format/num';
@@ -19,7 +20,7 @@ import { PdfTtfFont } from './ttffont';
 /**
  * Font descriptor object
  */
-export class PdfFontDescriptor extends PdfObject<PdfDict> {
+export class PdfFontDescriptor extends PdfObject<PdfDict<PdfDataType>> {
     /**
      * File data
      */

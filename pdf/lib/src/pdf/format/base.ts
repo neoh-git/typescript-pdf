@@ -1,5 +1,5 @@
 // Assuming these types are defined and exported from their respective files:
-import { PdfObjectBase } from './object_base';
+import { PdfObjectBase, PdfSettings } from './object_base';
 import { PdfStream } from './stream';
 
 // Dart's 'dart:typed_data' Uint8List maps to JavaScript's Uint8Array
@@ -7,15 +7,6 @@ import { PdfStream } from './stream';
 
 // The kIndentSize constant
 export const kIndentSize = 2;
-
-// Assuming PdfSettings is defined elsewhere and can be instantiated like this:
-// (If PdfSettings is a simple class with no properties or a singleton, this is fine.
-// If it requires complex setup, this might need adjustment.)
-declare class PdfSettings {
-    // Add any properties or methods if known, otherwise leave empty
-    // For a 'const' constructor in Dart, it often implies immutable or singleton-like behavior.
-    constructor();
-}
 
 
 /**

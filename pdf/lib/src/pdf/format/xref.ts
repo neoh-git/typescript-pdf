@@ -9,6 +9,7 @@ import { PdfNum } from './num';
 import { PdfObjectBase } from './object_base';
 import { PdfStream } from './stream';
 import { PdfSettings, PdfVersion } from './object_base'; // Assuming PdfSettings and PdfVersion are from here
+import { PdfDiagnostic } from './diagnostic';
 
 // If kIndentSize is not defined in 'base.ts', define it here:
 // const kIndentSize = 2;
@@ -77,7 +78,7 @@ export class PdfXref extends PdfIndirect {
      * Format: "offset gen type " (e.g., "0000000009 00000 n ").
      * @returns The formatted string for a legacy xref entry.
      */
-    private _legacyRef(): string {
+    legacyRef(): string {
         const offsetStr = this.offset.toString().padStart(10, '0');
         const genStr = this.gen.toString().padStart(5, '0');
         const typeChar = this.type === PdfCrossRefEntryType.inUse ? ' n ' : ' f ';
@@ -98,7 +99,7 @@ export class PdfXref extends PdfIndirect {
      * @param w An array `[Type_field_length, Offset_field_length, Gen_field_length]` indicating byte lengths.
      * @returns The new offset in the buffer after writing this entry.
      */
-    private _compressedRef(outputBuffer: DataView, offset: number, w: number[]): number {
+    compressedRef(outputBuffer: DataView, offset: number, w: number[]): number {
         if (w.length < 3) {
             // This was an `assert` in Dart. We'll throw an error for robustness.
             throw new Error('PdfXref._compressedRef: `w` array must have at least 3 elements.');
@@ -152,15 +153,6 @@ export class PdfXref extends PdfIndirect {
     // The Dart version uses `offset` for `hashCode`, consistent with its `==` operator.
 }
 
-// --- PdfDiagnostic Declarations (from 'diagnostic.dart' mixin) ---
-// These are assumed to be available globally or imported from a 'diagnostic' module.
-declare function setInsertion(s: PdfStream, value: number): void;
-declare function startStopwatch(): void;
-declare function stopStopwatch(): void;
-declare function debugFill(message: string): void;
-declare function writeDebug(s: PdfStream): void;
-declare let elapsedStopwatch: number; // In microseconds
-
 // --- PdfXrefTable Class ---
 /**
  * Represents the Cross-Reference Table (XRef Table) of a PDF document.
@@ -210,7 +202,7 @@ export class PdfXrefTable extends PdfDataType {
         s.putString(`${firstId} ${block.length}\n`);
 
         for (const x of block) {
-            s.putString(x._legacyRef());
+            s.putString(x.legacyRef());
             s.putByte(0x0a); // Newline after each entry
         }
     }
@@ -232,17 +224,6 @@ export class PdfXrefTable extends PdfDataType {
         // Binary header for PDF (marker for PDF viewers)
         s.putBytes([0x25, 0xC2, 0xA5, 0xC2, 0xB1, 0xC3, 0xAB, 0x0A]); // %<binary chars>\n
         s.putComment(PdfXrefTable.libraryName);
-
-        // Diagnostic information (verbose mode)
-        if (o.settings.verbose) {
-            setInsertion(s, 350); // What 350 refers to might need context
-            startStopwatch();
-            debugFill('Verbose dart_pdf');
-            debugFill(`Producer ${PdfXrefTable.libraryName}`);
-            debugFill(`Creation date: ${new Date().toISOString()}`); // ISO string for readability
-            debugFill(`Compress: ${o.settings.compress}`);
-            debugFill(`Crypto: ${o.settings.encryptCallback != null}`);
-        }
 
         // Write all objects and collect their cross-references
         const xrefList: PdfXref[] = [];
@@ -285,15 +266,6 @@ export class PdfXrefTable extends PdfDataType {
 
         // Write the 'startxref' keyword, the xref offset, and the '%%EOF' marker.
         s.putString(`startxref\n${xrefOffset}\n%%EOF\n`);
-
-        // Final diagnostic information
-        if (o.settings.verbose) {
-            stopStopwatch();
-            debugFill(`Creation time: ${elapsedStopwatch / 1000000} seconds`); // 1 million microseconds per second
-            debugFill(`File size: ${s.offset} bytes`);
-            debugFill(`Objects: ${this.objects.size}`);
-            writeDebug(s);
-        }
     }
 
     /**
@@ -346,7 +318,7 @@ export class PdfXrefTable extends PdfDataType {
         }
         s.putString('trailer\n');
         this.params.set('/Size', new PdfNum(size)); // Set the /Size entry in the trailer dictionary
-        this.params.output(o, s, o.settings.verbose ? 0 : null); // Output the trailer dictionary
+        this.params.output(o, s, undefined); // Output the trailer dictionary
         s.putByte(0x0a); // Newline after trailer dictionary
 
         return objOffset;
@@ -403,7 +375,7 @@ export class PdfXrefTable extends PdfDataType {
 
         // Only include /Index if it's not the default case (single block starting at 0 covering all objects)
         if (!(blocks.length === 2 && blocks[0] === 0 && blocks[1] === size)) {
-            this.params.set('/Index', PdfArray.fromNum(blocks));
+            this.params.set('/Index', PdfArray.fromNumbers(blocks));
         }
 
         // Determine the field widths for the compressed stream: [Type, Offset, Generation]
@@ -411,7 +383,7 @@ export class PdfXrefTable extends PdfDataType {
         const bytesForOffset = Math.ceil((Math.log(offset) / Math.LN2) / 8);
         // The 'w' array specifies the number of bytes used for Type, Offset, and Generation fields.
         const w = [1, bytesForOffset, 1]; // Type (1 byte), Offset (calculated), Generation (1 byte)
-        this.params.set('/W', PdfArray.fromNum(w));
+        this.params.set('/W', PdfArray.fromNumbers(w));
 
         // Calculate the total length of one entry in bytes (sum of w values)
         const wl = w.reduce((a, b) => a + b, 0);
@@ -427,7 +399,7 @@ export class PdfXrefTable extends PdfDataType {
         // Assuming binOffsets is initialized to zeros, so skipping `ofs += wl` effectively sets object 0 to all zeros.
 
         for (const x of xrefList) {
-            currentBinaryOffset = x._compressedRef(binOffsets, currentBinaryOffset, w);
+            currentBinaryOffset = x.compressedRef(binOffsets, currentBinaryOffset, w);
         }
 
         const objOffset = s.offset; // Get the offset where this compressed xref stream object will start
@@ -439,7 +411,7 @@ export class PdfXrefTable extends PdfDataType {
                 data: new Uint8Array(binOffsets.buffer), // The raw binary xref data
                 isBinary: true, // It's a binary stream
                 encrypt: false, // XRef streams are generally not encrypted
-                values: this.params.values, // Pass the dictionary params (Type, Size, W, Index etc.)
+                values: this.params, // Pass the dictionary params (Type, Size, W, Index etc.)
             }),
             settings: o.settings,
         }).output(s); // Output the compressed xref object
