@@ -1,18 +1,6 @@
-// Assuming these are defined in their respective .ts files:
-// import { PdfDocument } from '../document';
-// import { PdfArray } from '../format/array';
-// import { PdfBool } from '../format/bool';
-// import { PdfDict } from '../format/dict';
-// import { PdfName } from '../format/name';
-// import { PdfGraphicState } from '../graphic_state'; // Or wherever PdfGraphicState is defined
-// import { PdfFont } from './font';
-// import { PdfObject } from './object';
-// import { PdfPattern } from './pattern';
-// import { PdfShading } from './shading';
-// import { PdfXObject } from './xobject';
-
 import { PdfDocument } from '../document';
 import { PdfArray } from '../format/array';
+import { PdfDataType } from '../format/base';
 import { PdfBool } from '../format/bool';
 import { PdfDict } from '../format/dict';
 import { PdfName } from '../format/name';
@@ -30,7 +18,7 @@ type Constructor<T = {}> = new (...args: any[]) => T;
  * Mixin for graphic objects that manage resources like fonts, shaders, patterns, and XObjects.
  * It must be applied to a class that extends PdfObject<PdfDict>.
  */
-export function PdfGraphicStreamMixin<TBase extends Constructor<PdfObject<PdfDict<any>>>>(Base: TBase) {
+export function PdfGraphicStreamMixin<TBase extends Constructor<PdfObject<PdfDict<PdfDataType>>>>(Base: TBase) {
     // Dart's mixin properties and methods are defined here
     return class PdfGraphicStream extends Base {
         // Dart's `bool isolatedTransparency = false;`
@@ -163,7 +151,7 @@ export function PdfGraphicStreamMixin<TBase extends Constructor<PdfObject<PdfDic
             }
 
             // Transparency Group settings
-            if (this.pdfDocument.hasGraphicStates && !this.params.contains('/Group')) { // Dart's `containsKey` is `contains`
+            if (this.pdfDocument.hasGraphicStates && !this.params.containsKey('/Group')) {
                 // Dart's `PdfDict.values({...})` is `new PdfDict({...})`
                 this.params.set('/Group', new PdfDict({
                     '/Type': new PdfName('/Group'),
@@ -176,8 +164,8 @@ export function PdfGraphicStreamMixin<TBase extends Constructor<PdfObject<PdfDic
                 this.params.set('/ExtGState', this.pdfDocument.graphicStates.ref());
             }
 
-            if (resources.size > 0) {
-                if (this.params.has('/Resources')) {
+            if (resources.values.size > 0) {
+                if (this.params.containsKey('/Resources')) {
                     const res = this.params.get('/Resources'); // Get the existing resource dictionary
                     if (res instanceof PdfDict) { // Dart's `is PdfDict`
                         res.merge(resources); // Assuming PdfDict has a merge method
@@ -190,6 +178,9 @@ export function PdfGraphicStreamMixin<TBase extends Constructor<PdfObject<PdfDic
         }
     };
 }
+
+const _PdfGraphicStream = PdfGraphicStreamMixin(PdfObject<PdfDict<PdfDataType>>);
+export type PdfGraphicStream = InstanceType<typeof _PdfGraphicStream>;
 
 /**
  * Graphic XObject

@@ -1,5 +1,5 @@
 // Assuming these are defined in other TypeScript files:
-import { PathProxy, writeSvgPathDataToPath } from 'path-parsing'; // Assuming from the path-parsing library
+// import { PathProxy, writeSvgPathDataToPath } from 'path-parsing';
 import { mat4, vec3 } from 'gl-matrix';
 
 import { PdfColor, PdfColorCmyk } from './color';
@@ -14,6 +14,7 @@ import { PdfImageOrientation, PdfImage } from './obj/image';
 import { PdfPattern } from './obj/pattern';
 import { PdfShading } from './obj/shading';
 import { PdfRect } from './rect';
+import { PathProxy, writeSvgPathDataToPath, } from './path_parsing/path_parsing';
 
 /**
  * Shape to be used at the corners of paths that are stroked
@@ -77,15 +78,15 @@ export enum PdfTextRenderingMode {
  * Internal graphic context state.
  * @immutable This is a Dart-specific annotation; in TypeScript, ensure objects are not modified after creation.
  */
-class _PdfGraphicsContext {
+class PdfGraphicsContext {
     readonly ctm: mat4;
 
     constructor({ ctm }: { ctm: mat4 }) {
         this.ctm = ctm;
     }
 
-    copy(): _PdfGraphicsContext {
-        return new _PdfGraphicsContext({
+    copy(): PdfGraphicsContext {
+        return new PdfGraphicsContext({
             ctm: mat4.copy(mat4.create(), this.ctm),
         });
     }
@@ -98,15 +99,19 @@ export class PdfGraphics {
     /** Ellipse 4-spline magic number */
     private static readonly _m4 = 0.551784;
 
-    /** Graphic context */
-    private _context: _PdfGraphicsContext;
-    /** Stack-like queue for saving/restoring graphic contexts. */
-    private readonly _contextQueue: _PdfGraphicsContext[] = [];
+    private static readonly COMMENT_INDENT = 35;
+    private static readonly INDENT_AMOUNT = 2;
+    private indent = PdfGraphics.INDENT_AMOUNT;
 
-    private readonly _page: PdfGraphicStream;
+    /** Graphic context */
+    private context: PdfGraphicsContext;
+    /** Stack-like queue for saving/restoring graphic contexts. */
+    private readonly contextQueue: PdfGraphicsContext[] = [];
+
+    private readonly page: PdfGraphicStream;
 
     /** Buffer where to write the graphic operations */
-    private readonly _buf: PdfStream;
+    private readonly buf: PdfStream;
 
     /**
      * Create a new graphic canvas
@@ -114,18 +119,18 @@ export class PdfGraphics {
      * @param buf The PdfStream to write graphics operations to
      */
     constructor(page: PdfGraphicStream, buf: PdfStream) {
-        this._page = page;
-        this._buf = buf;
-        this._context = new _PdfGraphicsContext({ ctm: Matrix4.identity() });
+        this.page = page;
+        this.buf = buf;
+        this.context = new PdfGraphicsContext({ ctm: mat4.identity(mat4.create()) });
     }
 
     /** Default font if none selected */
-    public get defaultFont(): PdfFont | null {
-        return this._page.getDefaultFont();
+    public get defaultFont(): PdfFont | undefined {
+        return this.page.getDefaultFont();
     }
 
     public get altered(): boolean {
-        return this._page.altered;
+        return this.page.altered;
     }
 
     /**
@@ -134,8 +139,8 @@ export class PdfGraphics {
      */
     public fillPath(options: { evenOdd?: boolean } = {}): void {
         const { evenOdd = false } = options;
-        this._buf.putString(`f${evenOdd ? '*' : ''} `);
-        this._page.altered = true;
+        this.buf.putString(`f${evenOdd ? '*' : ''} `);
+        this.page.altered = true;
     }
 
     /**
@@ -144,14 +149,14 @@ export class PdfGraphics {
      */
     public strokePath(options: { close?: boolean } = {}): void {
         const { close = false } = options;
-        this._buf.putString(`${close ? 's' : 'S'} `);
-        this._page.altered = true;
+        this.buf.putString(`${close ? 's' : 'S'} `);
+        this.page.altered = true;
     }
 
     /** Close the path with a line. */
     public closePath(): void {
-        this._buf.putString('h ');
-        this._page.altered = true;
+        this.buf.putString('h ');
+        this.page.altered = true;
     }
 
     /**
@@ -162,7 +167,7 @@ export class PdfGraphics {
      */
     public clipPath(options: { evenOdd?: boolean; end?: boolean } = {}): void {
         const { evenOdd = false, end = true } = options;
-        this._buf.putString(`W${evenOdd ? '*' : ''}${end ? ' n' : ''} `);
+        this.buf.putString(`W${evenOdd ? '*' : ''}${end ? ' n' : ''} `);
     }
 
     /**
@@ -174,8 +179,8 @@ export class PdfGraphics {
         options: { evenOdd?: boolean; close?: boolean } = {},
     ): void {
         const { evenOdd = false, close = false } = options;
-        this._buf.putString(`${close ? 'b' : 'B'}${evenOdd ? '*' : ''} `);
-        this._page.altered = true;
+        this.buf.putString(`${close ? 'b' : 'B'}${evenOdd ? '*' : ''} `);
+        this.page.altered = true;
     }
 
     /**
@@ -183,9 +188,9 @@ export class PdfGraphics {
      * @param shader The PdfShading object to apply.
      */
     public applyShader(shader: PdfShading): void {
-        this._page.addShader(shader);
-        this._buf.putString(`${shader.name} sh `);
-        this._page.altered = true;
+        this.page.addShader(shader);
+        this.buf.putString(`${shader.name} sh `);
+        this.page.altered = true;
     }
 
     /**
@@ -196,16 +201,16 @@ export class PdfGraphics {
      * which will draw over this one.
      */
     public restoreContext(): void {
-        if (this._contextQueue.length > 0) {
-            this._buf.putString('Q ');
-            this._context = this._contextQueue.pop()!; // `!` because `length > 0` ensures it's not undefined.
+        if (this.contextQueue.length > 0) {
+            this.buf.putString('Q ');
+            this.context = this.contextQueue.pop()!; // `!` because `length > 0` ensures it's not undefined.
         }
     }
 
     /** Save the graphic context. */
     public saveContext(): void {
-        this._buf.putString('q ');
-        this._contextQueue.push(this._context.copy());
+        this.buf.putString('q ');
+        this.contextQueue.push(this.context.copy());
     }
 
     /**
@@ -220,9 +225,9 @@ export class PdfGraphics {
         w ??= img.width;
         h ??= img.height * w / img.width;
 
-        this._page.addXObject(img);
+        this.page.addXObject(img);
 
-        this._buf.putString('q '); // Save current graphics state
+        this.buf.putString('q '); // Save current graphics state
 
         // The image transformation matrix depends on its orientation
         let matrixValues: number[];
@@ -257,10 +262,10 @@ export class PdfGraphics {
                 break;
         }
 
-        new PdfNumList(matrixValues).output(this._page, this._buf);
-        this._buf.putString(' cm '); // Apply transformation matrix
-        this._buf.putString(`${img.name} Do Q `); // Draw image and restore graphics state
-        this._page.altered = true;
+        new PdfNumList(matrixValues).output(this.page, this.buf);
+        this.buf.putString(' cm '); // Apply transformation matrix
+        this.buf.putString(`${img.name} Do Q `); // Draw image and restore graphics state
+        this.page.altered = true;
     }
 
     /**
@@ -315,8 +320,8 @@ export class PdfGraphics {
      * @param h The height of the rectangle.
      */
     public drawRect(x: number, y: number, w: number, h: number): void {
-        new PdfNumList([x, y, w, h]).output(this._page, this._buf);
-        this._buf.putString(' re ');
+        new PdfNumList([x, y, w, h]).output(this.page, this.buf);
+        this.buf.putString(' re ');
     }
 
     /**
@@ -384,30 +389,30 @@ export class PdfGraphics {
             rise = null,
         } = options;
 
-        this._page.addFont(font);
+        this.page.addFont(font);
 
-        this._buf.putString(`${font.name} `);
-        new PdfNum(size).output(this._page, this._buf);
-        this._buf.putString(' Tf '); // Set font and size
+        this.buf.putString(`${font.name} `);
+        new PdfNum(size).output(this.page, this.buf);
+        this.buf.putString(' Tf '); // Set font and size
 
         if (charSpace != null) {
-            new PdfNum(charSpace).output(this._page, this._buf);
-            this._buf.putString(' Tc '); // Set character spacing
+            new PdfNum(charSpace).output(this.page, this.buf);
+            this.buf.putString(' Tc '); // Set character spacing
         }
         if (wordSpace != null) {
-            new PdfNum(wordSpace).output(this._page, this._buf);
-            this._buf.putString(' Tw '); // Set word spacing
+            new PdfNum(wordSpace).output(this.page, this.buf);
+            this.buf.putString(' Tw '); // Set word spacing
         }
         if (scale != null) {
-            new PdfNum(scale * 100).output(this._page, this._buf);
-            this._buf.putString(' Tz '); // Set horizontal scaling
+            new PdfNum(scale * 100).output(this.page, this.buf);
+            this.buf.putString(' Tz '); // Set horizontal scaling
         }
         if (rise != null) {
-            new PdfNum(rise).output(this._page, this._buf);
-            this._buf.putString(' Ts '); // Set text rise
+            new PdfNum(rise).output(this.page, this.buf);
+            this.buf.putString(' Ts '); // Set text rise
         }
         if (mode !== PdfTextRenderingMode.fill) {
-            this._buf.putString(`${mode.valueOf()} Tr `); // Set text rendering mode (using valueOf for enum numeric value)
+            this.buf.putString(`${mode.valueOf()} Tr `); // Set text rendering mode (using valueOf for enum numeric value)
         }
     }
 
@@ -446,7 +451,7 @@ export class PdfGraphics {
             rise = null,
         } = options;
 
-        this._buf.putString('BT '); // Begin Text object
+        this.buf.putString('BT '); // Begin Text object
 
         this.setFont(font, size, {
             charSpace,
@@ -456,21 +461,21 @@ export class PdfGraphics {
             wordSpace,
         });
 
-        new PdfNumList([x, y]).output(this._page, this._buf);
-        this._buf.putString(' Td '); // Move text position
+        new PdfNumList([x, y]).output(this.page, this.buf);
+        this.buf.putString(' Td '); // Move text position
 
-        this._buf.putString('[');
-        font.putText(this._buf, s); // Add text to the buffer
-        this._buf.putString(']TJ '); // Show text
+        this.buf.putString('[');
+        font.putText(this.buf, s); // Add text to the buffer
+        this.buf.putString(']TJ '); // Show text
 
-        this._buf.putString('ET '); // End Text object
+        this.buf.putString('ET '); // End Text object
 
-        this._page.altered = true;
+        this.page.altered = true;
     }
 
     /** Resets text rendering mode to fill. */
     public reset(): void {
-        this._buf.putString('0 Tr ');
+        this.buf.putString('0 Tr ');
     }
 
     /**
@@ -488,11 +493,11 @@ export class PdfGraphics {
      */
     public setFillColor(color: PdfColor | null): void {
         if (color instanceof PdfColorCmyk) {
-            new PdfNumList([color.cyan, color.magenta, color.yellow, color.black]).output(this._page, this._buf);
-            this._buf.putString(' k '); // Set fill color (CMYK)
+            new PdfNumList([color.cyan, color.magenta, color.yellow, color.black]).output(this.page, this.buf);
+            this.buf.putString(' k '); // Set fill color (CMYK)
         } else if (color != null) {
-            new PdfNumList([color.red, color.green, color.blue]).output(this._page, this._buf);
-            this._buf.putString(' rg '); // Set fill color (RGB)
+            new PdfNumList([color.red, color.green, color.blue]).output(this.page, this.buf);
+            this.buf.putString(' rg '); // Set fill color (RGB)
         }
     }
 
@@ -502,11 +507,11 @@ export class PdfGraphics {
      */
     public setStrokeColor(color: PdfColor | null): void {
         if (color instanceof PdfColorCmyk) {
-            new PdfNumList([color.cyan, color.magenta, color.yellow, color.black]).output(this._page, this._buf);
-            this._buf.putString(' K '); // Set stroke color (CMYK)
+            new PdfNumList([color.cyan, color.magenta, color.yellow, color.black]).output(this.page, this.buf);
+            this.buf.putString(' K '); // Set stroke color (CMYK)
         } else if (color != null) {
-            new PdfNumList([color.red, color.green, color.blue]).output(this._page, this._buf);
-            this._buf.putString(' RG '); // Set stroke color (RGB)
+            new PdfNumList([color.red, color.green, color.blue]).output(this.page, this.buf);
+            this.buf.putString(' RG '); // Set stroke color (RGB)
         }
     }
 
@@ -515,8 +520,8 @@ export class PdfGraphics {
      * @param pattern The PdfPattern to set.
      */
     public setFillPattern(pattern: PdfPattern): void {
-        this._page.addPattern(pattern);
-        this._buf.putString(`/Pattern cs${pattern.name} scn `); // Set fill pattern
+        this.page.addPattern(pattern);
+        this.buf.putString(`/Pattern cs${pattern.name} scn `); // Set fill pattern
     }
 
     /**
@@ -524,8 +529,8 @@ export class PdfGraphics {
      * @param pattern The PdfPattern to set.
      */
     public setStrokePattern(pattern: PdfPattern): void {
-        this._page.addPattern(pattern);
-        this._buf.putString(`/Pattern CS${pattern.name} SCN `); // Set stroke pattern
+        this.page.addPattern(pattern);
+        this.buf.putString(`/Pattern CS${pattern.name} SCN `); // Set stroke pattern
     }
 
     /**
@@ -533,8 +538,8 @@ export class PdfGraphics {
      * @param state The PdfGraphicState to apply.
      */
     public setGraphicState(state: PdfGraphicState): void {
-        const name = this._page.stateName(state);
-        this._buf.putString(`${name} gs `); // Apply graphic state
+        const name = this.page.stateName(state);
+        this.buf.putString(`${name} gs `); // Apply graphic state
     }
 
     /**
@@ -542,9 +547,9 @@ export class PdfGraphics {
      * @param t The mat4 to set as the current transformation matrix.
      */
     public setTransform(t: mat4): void {
-        new PdfNumList([t[0], t[1], t[4], t[5], t[12], t[13]]).output(this._page, this._buf);
-        this._buf.putString(' cm '); // Concatenate matrix
-        this._context.ctm.multiply(t); // Update internal CTM
+        new PdfNumList([t[0], t[1], t[4], t[5], t[12], t[13]]).output(this.page, this.buf);
+        this.buf.putString(' cm '); // Concatenate matrix
+        mat4.multiply(this.context.ctm, this.context.ctm, t);
     }
 
     /**
@@ -552,7 +557,7 @@ export class PdfGraphics {
      * @returns A clone of the current transformation matrix.
      */
     public getTransform(): mat4 {
-        return this._context.ctm.clone();
+        return mat4.clone(this.context.ctm);
     }
 
     /**
@@ -561,8 +566,8 @@ export class PdfGraphics {
      * @param y The y-coordinate of the end point.
      */
     public lineTo(x: number, y: number): void {
-        new PdfNumList([x, y]).output(this._page, this._buf);
-        this._buf.putString(' l '); // Line to
+        new PdfNumList([x, y]).output(this.page, this.buf);
+        this.buf.putString(' l '); // Line to
     }
 
     /**
@@ -571,8 +576,8 @@ export class PdfGraphics {
      * @param y The y-coordinate to move to.
      */
     public moveTo(x: number, y: number): void {
-        new PdfNumList([x, y]).output(this._page, this._buf);
-        this._buf.putString(' m '); // Move to
+        new PdfNumList([x, y]).output(this.page, this.buf);
+        this.buf.putString(' m '); // Move to
     }
 
     /**
@@ -588,8 +593,8 @@ export class PdfGraphics {
         x3: number,
         y3: number,
     ): void {
-        new PdfNumList([x1, y1, x2, y2, x3, y3]).output(this._page, this._buf);
-        this._buf.putString(' c '); // Curve to
+        new PdfNumList([x1, y1, x2, y2, x3, y3]).output(this.page, this.buf);
+        this.buf.putString(' c '); // Curve to
     }
 
     // Internal helper for vector angle calculation
@@ -820,7 +825,7 @@ export class PdfGraphics {
      * @param cap The PdfLineCap type.
      */
     public setLineCap(cap: PdfLineCap): void {
-        this._buf.putString(`${cap.valueOf()} J `); // Use valueOf() to get the numeric enum value
+        this.buf.putString(`${cap.valueOf()} J `); // Use valueOf() to get the numeric enum value
     }
 
     /**
@@ -828,7 +833,7 @@ export class PdfGraphics {
      * @param join The PdfLineJoin type.
      */
     public setLineJoin(join: PdfLineJoin): void {
-        this._buf.putString(`${join.valueOf()} j `); // Use valueOf() to get the numeric enum value
+        this.buf.putString(`${join.valueOf()} j `); // Use valueOf() to get the numeric enum value
     }
 
     /**
@@ -836,8 +841,8 @@ export class PdfGraphics {
      * @param width The line width.
      */
     public setLineWidth(width: number): void {
-        new PdfNum(width).output(this._page, this._buf);
-        this._buf.putString(' w '); // Set line width
+        new PdfNum(width).output(this.page, this.buf);
+        this.buf.putString(' w '); // Set line width
     }
 
     /**
@@ -850,8 +855,8 @@ export class PdfGraphics {
         if (limit < 1.0) {
             throw new Error('Miter limit must be >= 1.0');
         }
-        new PdfNum(limit).output(this._page, this._buf);
-        this._buf.putString(' M '); // Set miter limit
+        new PdfNum(limit).output(this.page, this.buf);
+        this.buf.putString(' M '); // Set miter limit
     }
 
     /**
@@ -863,8 +868,8 @@ export class PdfGraphics {
      * @param phase The dash phase.
      */
     public setLineDashPattern(array: number[] = [], phase: number = 0): void {
-        PdfArray.fromNum(array).output(this._page, this._buf);
-        this._buf.putString(` ${phase} d `); // Set dash pattern
+        PdfArray.fromNumbers(array).output(this.page, this.buf);
+        this.buf.putString(` ${phase} d `); // Set dash pattern
     }
 
     /**
@@ -872,23 +877,21 @@ export class PdfGraphics {
      * @param tag The PdfName tag.
      */
     public markContentBegin(tag: PdfName): void {
-        tag.output(this._page, this._buf);
-        this._buf.putString(' BMC '); // Begin marked content
+        tag.output(this.page, this.buf);
+        this.buf.putString(' BMC '); // Begin marked content
     }
 
     /** Mark content end. */
     public markContentEnd(): void {
-        this._buf.putString('EMC '); // End marked content
+        this.buf.putString('EMC '); // End marked content
     }
 }
 
 /**
  * Internal class to proxy graphics operations for SVG path parsing.
  */
-class _PathProxy extends PathProxy {
-    constructor(private readonly canvas: PdfGraphics) {
-        super();
-    }
+class _PathProxy implements PathProxy {
+    constructor(private readonly canvas: PdfGraphics) { }
 
     public close(): void {
         this.canvas.closePath();
@@ -917,7 +920,7 @@ class _PathProxy extends PathProxy {
 /**
  * Internal class to calculate bounding box of SVG paths.
  */
-class _PathBBProxy extends PathProxy {
+class _PathBBProxy implements PathProxy {
     private _xMin = Number.POSITIVE_INFINITY;
     private _yMin = Number.POSITIVE_INFINITY;
     private _xMax = Number.NEGATIVE_INFINITY;
@@ -926,9 +929,7 @@ class _PathBBProxy extends PathProxy {
     private _pX = 0.0;
     private _pY = 0.0;
 
-    constructor() {
-        super();
-    }
+    constructor() { }
 
     public get box(): PdfRect {
         if (this._xMin > this._xMax || this._yMin > this._yMax) {

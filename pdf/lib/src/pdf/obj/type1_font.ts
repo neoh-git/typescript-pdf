@@ -17,8 +17,8 @@ import { PdfName } from '../format/name';
 import { PdfNum } from '../format/num';
 import { PdfFont } from './font';
 import { PdfObject } from './object';
-import { PdfVersion } from '../../priv'; // Or wherever PdfVersion is defined
 import { PdfDataType } from '../format/base';
+import { PdfVersion } from '../format/object_base';
 
 /**
  * Type 1 font object.
@@ -68,17 +68,6 @@ export class PdfType1Font extends PdfFont {
             widths?: number[]; // Dart's `const <double>[]`
         },
     ): PdfType1Font {
-        // Dart's `assert(() { print(...); return true; }())` is for debug builds.
-        // In TS, for debug messages, use `console.debug` or `console.warn` within an `if (isDebug)` block.
-        // For release builds, these assertions are stripped.
-        if (pdfDocument.isDebug) { // Assuming `pdfDocument.isDebug` is a property
-            console.warn(
-                `${options.fontName} has no Unicode support. See https://github.com/DavBfr/dart_pdf/wiki/Fonts-Management`,
-            );
-        }
-
-        // Call the actual constructor with all parameters.
-        // In TypeScript, this `static create` method calls the real `constructor` of `PdfType1Font`.
         return new PdfType1Font(pdfDocument, options);
     }
 

@@ -96,7 +96,7 @@ export class PdfFormXObject extends PdfXObject {
             resources.set('/XObject', PdfDict.fromObjectMap(this.xobjects));
         }
 
-        if (resources.size > 0) { // Check if any resources were added
+        if (resources.values.size > 0) { // Check if any resources were added
             this.params.set('/Resources', resources);
         }
     }

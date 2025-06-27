@@ -52,13 +52,10 @@ export class PdfDict<T extends PdfDataType> extends PdfDataType {
      * @param objects A plain object mapping string keys to PdfObjectBase instances.
      * @returns A new PdfDict where the values are PdfIndirect references.
      */
-    static fromObjectMap(objects: { [key: string]: PdfObjectBase<PdfDataType> }): PdfDict<PdfIndirect> {
+    static fromObjectMap(objects: Map<string, PdfObjectBase<PdfDataType>>): PdfDict<PdfIndirect> {
         const mappedValues: { [key: string]: PdfIndirect } = {};
-        for (const key in objects) {
-            // Ensure the property belongs to the object itself, not its prototype chain
-            if (Object.prototype.hasOwnProperty.call(objects, key)) {
-                mappedValues[key] = objects[key].ref(); // Assumes PdfObjectBase has a .ref() method
-            }
+        for (const [key, value] of objects) {
+            mappedValues[key] = value.ref(); // Assumes PdfObjectBase has a .ref() method
         }
         return new PdfDict(mappedValues);
     }
